@@ -23,12 +23,13 @@ SOFTWARE.
 */
 
 #include "simplepbm.hpp"
+#include <iostream>
 #include <cstdlib>
 #include <ctime>
 
-const int image_width = 1200;
-const int image_height = 1200;
-const int num_iterations = 100000000;
+const int image_width = 2000;
+const int image_height = 4500;
+const int num_iterations = 1000000000;
 
 //on a barnsley fern, the entire image is in the area
 //−2.1820 < x < 2.6558 and 0 ≤ y < 9.9983.
@@ -44,14 +45,21 @@ double scale(double value, double oldMin, double oldMax, double newMin, double n
     return ((newMax - newMin) / (oldMax - oldMin)) * (value - oldMin) + newMin;
 }
 
+int yx_to_index(int y, int x)
+{
+    return y * image_width + x;
+}
+
 int main()
 {
     std::srand(std::time(NULL));
 
-    SimplePBM outputImage(image_width, image_height);
-
     double x = 0;
     double y = 0;
+
+    //value initialization to initialize the array with zeros
+    int *histogram = new int[image_height * image_width]();
+    int max = 0;
 
     for (int i = 0; i < num_iterations; i++)
     {
@@ -104,9 +112,33 @@ int main()
             plotY = image_height - 1;
         }
 
-        outputImage.getPixel(image_height - plotY - 1, plotX).g = 255;
+        (histogram[yx_to_index(plotY, plotX)])++;
+
+        if (histogram[yx_to_index(plotY, plotX)] > max)
+        {
+            max = histogram[yx_to_index(plotY, plotX)];
+        }
     }
 
+    std::cout << max << std::endl;
+
+    SimplePBM outputImage(image_width, image_height);
+
+    size_t index = 0;
+
+    for (size_t row = 0; row < image_height; row++)
+    {
+        for (size_t col = 0; col < image_width; col++)
+        {
+            if (histogram[index] != 0)
+            {
+                outputImage.getPixel(image_height - row - 1, col).g = histogram[index] % 255;
+            }
+            index++;
+        }
+    }
+
+    delete[] histogram;
     outputImage.writeToFile("fern.ppm");
 
     return 0;
