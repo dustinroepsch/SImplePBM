@@ -23,20 +23,91 @@ SOFTWARE.
 */
 
 #include "simplepbm.hpp"
+#include <cstdlib>
+#include <ctime>
+
+const int image_width = 1200;
+const int image_height = 1200;
+const int num_iterations = 100000000;
+
+//on a barnsley fern, the entire image is in the area
+//−2.1820 < x < 2.6558 and 0 ≤ y < 9.9983.
+const double xMin = -2.1820;
+const double xMax = 2.6558;
+const double yMin = 0;
+const double yMax = 9.9983;
+
+double scale(double value, double oldMin, double oldMax, double newMin, double newMax)
+{
+    //linear interpolation defined by the points (oldMin, newMin), (oldMax, newMax);
+    // y = ((newMax - newMin) / (oldMax - oldMin))(x - oldMin) + newMin;
+    return ((newMax - newMin) / (oldMax - oldMin)) * (value - oldMin) + newMin;
+}
 
 int main()
 {
-    SimplePBM testImage(100, 100);
+    std::srand(std::time(NULL));
 
-    for (int row = 0; row < 100; row++)
+    SimplePBM outputImage(image_width, image_height);
+
+    double x = 0;
+    double y = 0;
+
+    for (int i = 0; i < num_iterations; i++)
     {
-        for (int col = 0; col < 100; col++)
+        int roll = rand() % 100;
+
+        double oldX = x;
+        double oldY = y;
+
+        if (roll == 0)
         {
-            testImage.getPixel(row, col).r = row * 2;
+            x = 0;
+            y = 0.16 * oldY;
         }
+        else if (roll <= 85)
+        {
+            x = 0.85 * oldX + 0.04 * oldY;
+            y = -0.04 * oldX + 0.85 * oldY + 1.6;
+        }
+        else if (roll <= 92)
+        {
+            x = 0.2 * oldX - 0.26 * oldY;
+            y = 0.23 * oldX + 0.22 * oldY + 1.6;
+        }
+        else
+        {
+            x = -0.15 * oldX + 0.28 * oldY;
+            y = 0.26 * oldX + 0.24 * oldY + 0.44;
+        }
+
+        int plotX = int(scale(x, xMin, xMax, 0, image_width));
+        int plotY = int(scale(y, yMin, yMax, 0, image_height));
+
+        if (plotX < 0)
+        {
+            plotX = 0;
+        }
+
+        if (plotY < 0)
+        {
+            plotY = 0;
+        }
+
+        if (plotX >= image_width)
+        {
+            plotX = image_width - 1;
+        }
+
+        if (plotY >= image_height)
+        {
+            plotY = image_height - 1;
+        }
+
+        outputImage.getPixel(image_height - plotY - 1, plotX).g = 255;
     }
 
-    testImage.writeToFile("test.ppm");
+    outputImage.writeToFile("fern.ppm");
 
     return 0;
 }
