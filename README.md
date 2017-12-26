@@ -5,7 +5,7 @@ SimplePBM is a barebone image IO library, defined entirely in one header file.
 
 Minimal Example:
 
-```c_cpp
+```c++
 #include "simplepbm.hpp"
 #include <cstdlib> //for rand();
 
@@ -36,4 +36,4 @@ clang++ -Wall -Werror -std=c++14 example.cpp
 
 Which should generate a file called `fern.ppm` that looks like:
 
-![image of fern](https://i.imgur.com/undefined.png)
+![Image of a fern](https://i.imgur.com/u7xzizp.jpg)
