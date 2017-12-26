@@ -26,10 +26,11 @@ SOFTWARE.
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <cmath>
 
 const int image_width = 2000;
 const int image_height = 4500;
-const int num_iterations = 1000000000;
+const int num_iterations = 100000000;
 
 //on a barnsley fern, the entire image is in the area
 //−2.1820 < x < 2.6558 and 0 ≤ y < 9.9983.
@@ -50,6 +51,38 @@ int yx_to_index(int y, int x)
     return y * image_width + x;
 }
 
+class RollingStandardDeviation
+{
+  public:
+    RollingStandardDeviation()
+    {
+        sum = sumSquared = 0;
+        n = 0;
+    }
+
+    void add(double value)
+    {
+        sum += value;
+        sumSquared += value * value;
+        n++;
+    }
+
+    double getStandardDeviation()
+    {
+        return std::sqrt(n * sumSquared - sum * sum) / n;
+    }
+
+    double getMean()
+    {
+        return sum / n;
+    }
+
+  private:
+    double sum;
+    double sumSquared;
+    int n;
+};
+
 int main()
 {
     std::srand(std::time(NULL));
@@ -59,7 +92,6 @@ int main()
 
     //value initialization to initialize the array with zeros
     int *histogram = new int[image_height * image_width]();
-    int max = 0;
 
     for (int i = 0; i < num_iterations; i++)
     {
@@ -113,27 +145,47 @@ int main()
         }
 
         (histogram[yx_to_index(plotY, plotX)])++;
-
-        if (histogram[yx_to_index(plotY, plotX)] > max)
-        {
-            max = histogram[yx_to_index(plotY, plotX)];
-        }
     }
 
-    std::cout << max << std::endl;
+    RollingStandardDeviation sd;
+
+    for (size_t i = 0; i < image_width * image_height; i++)
+    {
+        sd.add(histogram[i]);
+    }
 
     SimplePBM outputImage(image_width, image_height);
 
     size_t index = 0;
 
+    double mean = sd.getMean();
+    double sigma = sd.getStandardDeviation();
+
+    double minClamp = mean - sigma;
+    double maxClamp = mean + sigma;
+
+    std::cout << "Mean: " << mean << " Sigma: " << sigma << std::endl;
+
     for (size_t row = 0; row < image_height; row++)
     {
         for (size_t col = 0; col < image_width; col++)
         {
-            if (histogram[index] != 0)
+            int val = histogram[index];
+
+            if (val > 0)
             {
-                outputImage.getPixel(image_height - row - 1, col).g = histogram[index] % 255;
+                if (val < minClamp)
+                {
+                    val = minClamp;
+                }
+                if (val > maxClamp)
+                {
+                    val = maxClamp;
+                }
+
+                outputImage.getPixel(image_height - row - 1, col).g = scale(val, minClamp, maxClamp, 0, 255);
             }
+
             index++;
         }
     }
